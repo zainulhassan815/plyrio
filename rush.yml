@@ -1,0 +1,31 @@
+name: Plyr           # Caution: DO NOT change the name.
+description: Plyr Video Player <br> A simple extension for adding a simple yet powerful video player based on <a href="https://plyr.io" target="_blank">Plyr</a> that supports lots of cool features.
+homepage: https://community.kodular.io/t/free-plyr-video-player-qualities-captions-thumbnail-attaractive-ui-and-much-more/112735
+# For a detailed info on this file and supported fields, check
+# out this link: https://github.com/ShreyashSaitwal/rush-cli/wiki/Metadata-File
+
+version:
+  number: auto        # Auto increments version number when built with '-r' (or '--release') flag.
+  name: 2.0.5
+
+assets:
+  icon: icon.png      # Extension icon
+  other:              # Extension asset(s)
+    - index.html
+    - plyr.css
+    - plyr.js
+    - hls.js
+    - plyr.svg
+    - blank.jpg
+
+authors:
+  - Zain Ul Hassan
+
+# Uncomment the below field if you wish to apply ProGuard while building a release
+# build ('-r') of your extension:
+release:
+  optimize: true
+
+#deps:         # Dependencies should be first added to the "deps" folder
+#  - my_awesome_library.jar
+

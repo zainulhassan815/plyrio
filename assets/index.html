@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <link rel="stylesheet" href="plyr.css">
+    <script src="plyr.js"></script>
+    <script src="hls.js"></script>
+</head>
+
+<body>
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Avenir', 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Helvetica, Arial, sans-serif, 'Roboto';
+            --plyr-range-thumb-height: 15px;
+            --plyr-range-track-height: 4px;
+            --plyr-control-icon-size: 15px;
+            --plyr-font-size-captions-base: 18px;
+            --plyr-font-size-captions-medium: 18px * 1.5;
+            --plyr-font-size-captions-large: 18px * 2;
+            --plyr-font-size-captions-small: 24px;
+            width: 100%;
+            height: 100vh;
+        }
+
+        #wrapper {
+            background-color: black;
+            display: block;
+        }
+
+        #player :focus {
+            outline: none;
+        }
+    </style>
+
+    <script>
+
+        const proxy = "https://api.allorigins.win/raw?url="; // Used to prevent CORS issue or same origin policy.
+        var videoPath; // Defines the path of video;
+        var mediaType; // Defines the type of video.
+        var controls;
+
+        // Default Options for player
+        const defaultOptions = {
+            loadSprite: false, iconUrl: "plyr.svg", clickToPlay: false, captions: { update: true, active: true }, keyboard: { focused: false, global: false }, speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] }, tooltips: { controls: false, seek: true },
+        };
+
+        // Video Types supported by the player. The user need to specify type of video upon initialization.
+        const YOUTUBE = 'youtube';
+        const VIMEO = 'vimeo';
+        const VIDEO = 'video';
+        const HLS = 'hls';
+        const AUDIO = 'audio';
+
+        // This variable holds all the Caption Tracks that are added in the player. It helps to remove tracks dynamically.
+        var tracks = [];
+
+        // This function helps to resize the player to the desired width and height dynamically.
+        function resize() {
+            try {
+                var wrapper = document.getElementById("wrapper");
+                if (wrapper != null) {
+                    if (mediaType == AUDIO) {
+                        wrapper.style = "width: 100%;";
+                    } else {
+                        wrapper.style = "width: 100%; height: 100vh;";
+                    }
+                }
+                var videoPlayer = document.getElementById("player");
+                if (videoPlayer != null) {
+                    if (mediaType == AUDIO) {
+                        videoPlayer.style = "width: 100%;";
+                    } else {
+                        videoPlayer.style = "width: 100%; height: 100vh;";
+                    }
+                }
+                var ytandvimeoPlayer = document.getElementsByClassName("plyr")[0];
+                if (ytandvimeoPlayer != null) {
+                    if (mediaType == AUDIO) {
+                        ytandvimeoPlayer.style = "width: 100%;";
+                    } else {
+                        ytandvimeoPlayer.style = "width: 100%; height: 100vh;";
+                    }
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        // This function initializes the player with provided params.
+        function init(path, poster, subtitles, subtitleLabel, subtitleLang, type, customControls) {
+
+            videoPath = path;
+            mediaType = type;
+            controls = customControls;
+
+            // Here we check if path is empty or not
+            if (path.toString().length > 0) {
+
+                addSource();
+
+                if (type == VIDEO || type == HLS) {
+
+                    if (poster.toString().length > 0) {
+                        console.log("Poster Set");
+                        player.poster = poster;
+                    } else {
+                        player.poster = "blank.jpg";
+                    }
+
+                    if (subtitles.toString().length > 0) {
+                        addTrack(subtitles, subtitleLabel, subtitleLang)
+                    }
+                }
+
+                resize();
+
+                console.log("Player Created For : " + mediaType);
+
+            } else {
+                console.log('error : Path can\'t be empty');
+            }
+        }
+
+        // This function creates a player based on mediaType.
+        function addSource() {
+
+            switch (mediaType) {
+                case HLS: {
+                    createVideo();
+                    hlsSource(videoPath);
+                };
+                    break;
+
+                case VIDEO: {
+                    createVideo();
+                    createPlayer();
+                    video.src = videoPath;
+                };
+                    break;
+
+                case AUDIO: {
+                    var audio = document.createElement('audio');
+                    Object.assign(audio, {
+                        id: "player",
+                        src: videoPath
+                    });
+                    document.body.appendChild(audio);
+                    createPlayer();
+                };
+                    break;
+                case VIMEO:
+                case YOUTUBE: {
+                    createVideo();
+                    createPlayer();
+                };
+                    break;
+            }
+        }
+
+        // This function create a DIV with id wrapper and then creates a VIDEO element and adds it to the wrapper.
+        function createVideo() {
+
+            var container = document.createElement('div');
+            container.setAttribute('id', 'wrapper');
+
+            var video = document.createElement('video');
+            video.setAttribute('crossorigin', '');
+            video.setAttribute('id', 'player');
+            video.setAttribute('playsinline', '');
+            container.appendChild(video);
+
+            document.body.appendChild(container);
+            var video = document.getElementById('player');
+            window.video = video;
+        }
+
+        // This function initializes the PLYR object.
+        function createPlayer() {
+            defaultOptions.controls = controls;
+            const player = new Plyr('#player', defaultOptions);
+            window.player = player;
+            //This is used to initialize player in case of VIMEO and YOUTUBE
+            if (mediaType === VIMEO || mediaType === YOUTUBE) {
+                player.source = {
+                    type: 'video',
+                    sources: [
+                        {
+                            src: videoPath,
+                            provider: mediaType
+                        }
+                    ]
+                };
+            }
+            addListeners();
+        }
+
+        // This function add listeners to the player to notify extension about data changes. It also initializes player in case of VIMEO and YOUTUBE.
+        function addListeners() {
+            player.on('ready', event => {
+
+                console.log('ready');
+                const instance = event.detail.plyr;
+                window.instance = instance;
+
+                setInterval(checkBuffering, checkInterval);
+
+                instance.on('play', () => {
+                    console.log('played');
+                });
+                instance.on('error', () => {
+                    console.log('error : ' + player.error);
+                });
+                instance.on('pause', () => {
+                    console.log('paused');
+                });
+                instance.on('ended', () => {
+                    console.log('completed');
+                });
+                instance.on('stop', () => {
+                    console.log('stopped');
+                });
+                instance.on('enterfullscreen', () => {
+                    console.log('fullscreenenabled');
+                });
+                instance.on('exitfullscreen', () => {
+                    console.log('fullscreendisabled');
+                });
+                // Disable double click to enter full screen
+                instance.eventListeners.forEach(function (eventListener) {
+                    if (eventListener.type === 'dblclick') {
+                        eventListener.element.removeEventListener(eventListener.type, eventListener.callback, eventListener.options);
+                    };
+                });
+                instance.on('timeupdate', () => {
+                    try {
+                        window.Interface.timeUpdated(player.currentTime * 1000);
+                        getText();
+                    } catch (e) { }
+                });
+                instance.on('loadedmetadata', () => {
+                    createMeta();
+                    console.log('Meta Loaded');
+                });
+            });
+        }
+
+        // This function removes all the subtitles from player.
+        function removeTracks() {
+            tracks.forEach(element => {
+                element.remove();
+            });
+            tracks = [];
+        }
+
+        // Hide Controls
+        function toggleControls(show) {
+            if (show) {
+                document.querySelectorAll('.plyr__controls')[0].style.display = "flex";
+                document.querySelectorAll('.plyr__control--overlaid')[0].style.display = "block";
+            } else {
+                document.querySelectorAll('.plyr__controls')[0].style.display = "none";
+                document.querySelectorAll('.plyr__control--overlaid')[0].style.display = "none";
+            }
+        }
+
+        // Toggle Captions
+        function toggleCaptions(show) {
+            if (tracks.length > 0) {
+                if (show) {
+                    document.getElementsByClassName('plyr__captions')[0].style.display = "inline"
+                } else {
+                    document.getElementsByClassName('plyr__captions')[0].style.display = "none"
+                }
+            } else {
+                console.log('error : captions not found');
+            }
+        }
+
+        // Select Captions Track
+        function selectTrack(index) {
+            if (tracks.length > 0) {
+                if ((index + 1) <= tracks.length) {
+                    player.currentTrack = index;
+                } else {
+                    console.log('error : track not found at index' + (index - 1));
+                }
+            }
+        }
+
+        // Change Thumbnail
+        function updatePoster(url) {
+            document.getElementsByClassName('plyr__poster')[0].style = "background-image : url(\"" + url + "\");";
+        }
+
+        // Change Quality
+        function changeQuality(index) {
+            if (availableQualities != null) {
+                if ((index + 1) <= availableQualities.length) {
+                    if (document.getElementsByClassName('plyr__controls')[0].children.length > 0) {
+                        player.quality = availableQualities[index];
+                    } else {
+                        hls.currentLevel = index;
+                    }
+                } else {
+                    console.log('error : qualit match not found');
+                }
+            }
+        }
+
+        // Get Current Text
+        function getText() {
+            var currentTrack = player.currentTrack;
+            if (tracks.length > 0) {
+                if (currentTrack != -1) {
+                    var text = "";
+                    try {
+                        text = tracks[currentTrack].track.activeCues[0].text;
+                        window.Interface.gotText(text);
+                    } catch (e) { }
+                    return text;
+                } else {
+                    console.log('error : Track not selected');
+                }
+            } else {
+                console.log('error : No Tracks Found');
+            }
+        }
+
+
+        // Create JSON Metadata for Media
+        function createMeta() {
+            var qualities = typeof hls != 'undefined' ? hls.levels.map((e) => e.height) : [];
+            var title;
+            try {
+                var iframe = document.getElementsByTagName('iframe')[0];
+                title = iframe.title.replace("Player for ", "");
+            } catch (e) {
+                title = "";
+            }
+            var result = new MetaData(
+                player.type,
+                player.poster,
+                player.source,
+                player.media.duration != null || player.media.duration != NaN ? player.media.duration * 1000 : "null",
+                title,
+                qualities
+            );
+            try {
+                window.Interface.gotMeta(JSON.stringify(result));
+            } catch (e) { }
+            console.log(JSON.stringify(result));
+        }
+
+        function MetaData(type, poster, path, duration, title, qualities) {
+            this.path = path;
+            this.type = type;
+            this.poster = poster;
+            this.duration = duration;
+            this.qualities = qualities;
+            this.title = title;
+        }
+
+        // This function adds hls (m3u8) file to the player.
+        function hlsSource(path) {
+
+            const source = path;
+
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(source);
+                hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+
+                    const availableQualities = hls.levels.map((l) => l.height)
+                    window.availableQualities = availableQualities;
+
+                    defaultOptions.quality = {
+                        default: availableQualities[0],
+                        options: availableQualities,
+                        forced: true,
+                        onChange: (e) => updateQuality(e),
+                    }
+                    createPlayer();
+                });
+                hls.attachMedia(video);
+                window.hls = hls;
+            } else {
+                createPlayer();
+
+            }
+
+            // This function updates the quality when user selects a new quality option.
+            function updateQuality(newQuality) {
+                window.hls.levels.forEach((level, levelIndex) => {
+                    if (level.height === newQuality) {
+                        console.log("Found quality match with " + newQuality);
+                        window.hls.currentLevel = levelIndex;
+                    }
+                });
+            }
+        }
+
+        // These two functions convert srt to vtt.
+        function srt2webvtt(data) {
+            // remove dos newlines
+            var srt = data.replace(/\r+/g, '');
+            // trim white space start and end
+            srt = srt.replace(/^\s+|\s+$/g, '');
+
+            // get cues
+            var cuelist = srt.split('\n\n');
+            var result = "";
+
+            if (cuelist.length > 0) {
+                result += "WEBVTT\n\n";
+                for (var i = 0; i < cuelist.length; i = i + 1) {
+                    result += convertSrtCue(cuelist[i]);
+                }
+            }
+
+            return result;
+        }
+        function convertSrtCue(caption) {
+
+            var cue = "";
+            var s = caption.split(/\n/);
+
+            // concatenate muilt-line string separated in array into one
+            while (s.length > 3) {
+                for (var i = 3; i < s.length; i++) {
+                    s[2] += "\n" + s[i]
+                }
+                s.splice(3, s.length - 3);
+            }
+
+            var line = 0;
+
+            // detect identifier
+            if (!s[0].match(/\d+:\d+:\d+/) && s[1].match(/\d+:\d+:\d+/)) {
+                cue += s[0].match(/\w+/) + "\n";
+                line += 1;
+            }
+
+            // get time strings
+            if (s[line].match(/\d+:\d+:\d+/)) {
+                // convert time string
+                var m = s[1].match(/(\d+):(\d+):(\d+)(?:,(\d+))?\s*--?>\s*(\d+):(\d+):(\d+)(?:,(\d+))?/);
+                if (m) {
+                    cue += m[1] + ":" + m[2] + ":" + m[3] + "." + m[4] + " --> "
+                        + m[5] + ":" + m[6] + ":" + m[7] + "." + m[8] + "\n";
+                    line += 1;
+                } else {
+                    // Unrecognized timestring
+                    return "";
+                }
+            } else {
+                // file format error or comment lines
+                return "";
+            }
+
+            // get cue text
+            if (s[line]) {
+                cue += s[line] + "\n\n";
+            }
+
+            return cue;
+        }
+
+        // This Function deals with subtitles. It first reads the content of file and then converts that srt content into vtt and provides blob url to the player.
+        function addTrack(path, label, lang) {
+            try {
+                var client = new XMLHttpRequest();
+                client.open("GET", proxy + path, true);
+                client.onreadystatechange = function () {
+                    if (client.readyState === 4) {
+                        if (client.status === 200) {
+                            if (client.responseText != "") {
+                                var vttText = srt2webvtt(client.responseText);
+                                var vttBlob = new Blob([vttText], { type: 'text/vtt' });
+                                var blobURL = URL.createObjectURL(vttBlob);
+
+                                const track = document.createElement('track');
+                                Object.assign(track, {
+                                    label: label,
+                                    srclang: lang,
+                                    src: blobURL,
+                                    kind: "captions",
+                                    default: '',
+                                });
+                                tracks.push(track);
+                                video.appendChild(track);
+                                try {
+                                    window.Interface.trackAdded(label, lang);
+                                } catch (e) { }
+                                console.log("track added");
+                            }
+                        }
+                    }
+                }
+                client.send();
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        // Loading Helper
+        var checkInterval = 50.0; // check every 50 ms (do not use lower values)
+        var lastPlayPos = 0;
+        var currentPlayPos = 0;
+        var bufferingDetected = false;
+
+        function checkBuffering() {
+            currentPlayPos = player.currentTime;
+            // checking offset should be at most the check interval
+            // but allow for some margin
+            var offset = (checkInterval - 20) / 1000;
+
+            // if no buffering is currently detected,
+            // and the position does not seem to increase
+            // and the player isn't manually paused...
+            if (
+                !bufferingDetected
+                && currentPlayPos < (lastPlayPos + offset)
+                && !player.paused
+            ) {
+                console.log("buffering");
+                bufferingDetected = true;
+                try { window.Interface.loadingChanged(true); } catch (e) { }
+            }
+
+            // if we were buffering but the player has advanced,
+            // then there is no buffering
+            if (
+                bufferingDetected
+                && currentPlayPos > (lastPlayPos + offset)
+                && !player.paused
+            ) {
+                console.log("not buffering anymore");
+                bufferingDetected = false;
+                try { window.Interface.loadingChanged(false); } catch (e) { }
+            }
+            lastPlayPos = currentPlayPos;
+        }
+    </script>
+</body>
+
+</html>

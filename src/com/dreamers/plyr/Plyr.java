@@ -1,10 +1,10 @@
-package Plyr;
+package com.dreamers.plyr;
 
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.DisplayMetrics;
+import android.os.Build;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.*;
@@ -52,9 +52,11 @@ public class Plyr extends AndroidNonvisibleComponent {
     public void Initialize(HVArrangement layout, String path, String thumbnail, String subtitle, String subtitlesLang, String mediaType, Object controls) {
         if (!mediaType.isEmpty()) {
             if (!path.isEmpty()) {
+
                 this.mediaType = mediaType;
                 this.poster = thumbnail;
                 this.source = path;
+
                 if (!subtitle.isEmpty()) {
                     this.subtitles = subtitle;
                     this.subtitlesLanguage = subtitlesLang;
@@ -83,6 +85,7 @@ public class Plyr extends AndroidNonvisibleComponent {
                 this.webView = new WebView(this.context);
                 WebSettings settings = this.webView.getSettings();
                 this.webView.setLayoutParams(new ViewGroup.LayoutParams(-1, -1));
+
                 settings.setJavaScriptEnabled(true);
                 settings.setAllowFileAccess(true);
                 settings.setAllowContentAccess(true);
@@ -93,24 +96,31 @@ public class Plyr extends AndroidNonvisibleComponent {
                 settings.setAppCacheEnabled(true);
                 settings.setMediaPlaybackRequiresUserGesture(false);
                 settings.setLoadsImagesAutomatically(true);
+
                 this.webView.setVerticalScrollBarEnabled(false);
                 this.webView.setHorizontalScrollBarEnabled(false);
                 this.webView.setScrollbarFadingEnabled(false);
                 this.webView.setVerticalFadingEdgeEnabled(false);
                 this.webView.setHorizontalScrollBarEnabled(false);
                 this.webView.setWebViewClient(new Plyr.MyClient());
-                this.webView.setWebChromeClient(new Plyr.MyChrome(this.context));
+                this.webView.setWebChromeClient(new Plyr.MyChrome());
                 this.webView.addJavascriptInterface(new Plyr.JSInterface(), "Interface");
 
                 String activityName = this.activity.getClass().getName();
                 boolean isCompanion = activityName.contains("io.makeroid.companion");
 
                 try {
+                    String indexFile;
                     if (isCompanion) {
-                        this.webView.loadUrl("file:///storage/emulated/0/Makeroid/assets/external_comps/Plyr/assets/index.html");
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            indexFile = context.getExternalFilesDir(null).toString() + "/assets/external_comps/com.dreamers.plyr/assets/index.html";
+                        } else {
+                            indexFile = "file:///storage/emulated/0/Kodular/assets/external_comps/com.dreamers.plyr/assets/index.html";
+                        }
                     } else {
-                        this.webView.loadUrl(this.form.getAssetPathForExtension(this, "index.html"));
+                        indexFile = this.form.getAssetPathForExtension(this, "index.html");
                     }
+                    webView.loadUrl(indexFile);
                 } catch (Exception e) {
                     this.OnError(e.getMessage());
                 }
@@ -219,31 +229,31 @@ public class Plyr extends AndroidNonvisibleComponent {
     // --------------------------------------------
 
     // Play
-    @SimpleFunction
+    @SimpleFunction(description = "Play media")
     public void Play() {
         this.jsRunner.EvaluateJS("window.player.play();");
     }
 
     // Pause
-    @SimpleFunction
+    @SimpleFunction(description = "Pause media")
     public void Pause() {
         this.jsRunner.EvaluateJS("window.player.pause();");
     }
 
     // Stop / Reset
-    @SimpleFunction
+    @SimpleFunction(description = "Stop media playback and reset to initial position")
     public void Stop() {
         this.jsRunner.EvaluateJS("window.player.stop();");
     }
 
     // Loop
-    @SimpleProperty
+    @SimpleProperty(description = "Toggle loop")
     public void Loop(boolean loop) {
         this.jsRunner.EvaluateJS("player.loop = " + loop + ";");
     }
 
     // Set Source
-    @SimpleProperty
+    @SimpleProperty(description = "Set media source.")
     public void SetSource(String source) {
         if (source != null && source.length() > 0) {
             this.source = source;
@@ -255,7 +265,7 @@ public class Plyr extends AndroidNonvisibleComponent {
     }
 
     // Add Subtitles
-    @SimpleFunction
+    @SimpleFunction(description = "Add subtitles")
     public void AddSubtitle(String path, String language) {
         if (path != null && path.length() > 0) {
             String var3 = "";
@@ -271,161 +281,157 @@ public class Plyr extends AndroidNonvisibleComponent {
     }
 
     // Set Thumbnail
-    @SimpleProperty
+    @SimpleProperty(description = "Set thumbnail image")
     public void Thumbnail(String poster) {
         this.jsRunner.EvaluateJS("updatePoster(\"" + poster + "\");");
     }
 
     // Seek to specific point
-    @SimpleFunction
+    @SimpleFunction(description = "Seek to specific milliseconds")
     public void SeekTo(int milliseconds) {
         milliseconds /= 1000;
         this.jsRunner.EvaluateJS("player.currentTime =" + milliseconds + ";");
     }
 
     // Set quality
-    @SimpleProperty
+    @SimpleProperty(description = "Change quality of media")
     public void CurrentQuality(int index) {
-        --index;
-        this.jsRunner.EvaluateJS("changeQuality(" + index + ");");
+        this.jsRunner.EvaluateJS("changeQuality(" + --index + ");");
     }
 
     // Get metadata ( Properties associated with video like title,type,quality etc )
-    @SimpleFunction
+    @SimpleFunction(description = "Get metadata ( Properties associated with video like title,type,quality etc )")
     public void GetMetadata() {
         this.jsRunner.EvaluateJS("createMeta();");
     }
 
     // Toggle Controls visibility
-    @SimpleProperty
+    @SimpleProperty(description = "Toggle Controls visibility")
     public void ControlsVisible(boolean visible) {
         this.jsRunner.EvaluateJS("toggleControls(" + visible + ");");
     }
 
     // Toggle Captions visibility
-    @SimpleProperty
+    @SimpleProperty(description = "Toggle Captions visibility")
     public void CaptionsVisible(boolean visible) {
         this.jsRunner.EvaluateJS("toggleCaptions(" + visible + ")");
     }
 
     // Remove All Subtitles
-    @SimpleFunction
+    @SimpleFunction(description = "Remove All Subtitles")
     public void RemoveSubtitles() {
         this.jsRunner.EvaluateJS("removeTracks();");
     }
 
     // Set current track
-    @SimpleProperty
+    @SimpleProperty(description = "Set current track")
     public void CurrentTrack(int index) {
-        --index;
-        this.jsRunner.EvaluateJS("selectTrack(" + index + ");");
+        this.jsRunner.EvaluateJS("selectTrack(" + --index + ");");
     }
 
     // Set speed
-    @SimpleProperty
+    @SimpleProperty(description = "Change playback speed")
     public void Speed(double speed) {
         this.jsRunner.EvaluateJS("player.speed =" + speed + ";");
     }
 
     // Seek forward
-    @SimpleFunction
+    @SimpleFunction(description = "Seek forward")
     public void Forward(int milliseconds) {
         this.jsRunner.EvaluateJS("player.forward(" + milliseconds / 1000 + ");");
     }
 
     //Seek backwards
-    @SimpleFunction
+    @SimpleFunction(description = "Seek backward")
     public void Rewind(int milliseconds) {
         this.jsRunner.EvaluateJS("player.rewind(" + milliseconds / 1000 + ");");
     }
 
     // Convert milliseconds to hh:mm:ss time format
-    @SimpleFunction
-    public String MillsToText(long milliseconds) {
+    @SimpleFunction(description = "Convert milliseconds to hh:mm:ss time format")
+    public String Format(long milliseconds) {
         long seconds = milliseconds / 1000L;
-        return String.format("%02d:%02d:%02d", seconds / 3600L, seconds % 3600L / 60L, seconds % 60L, Locale.US);
+        return String.format(Locale.US, "%02d:%02d:%02d", seconds / 3600L, seconds % 3600L / 60L, seconds % 60L);
     }
 
     // Events
     // --------------------------------------------
 
     // Event raised when an error occurs
-    @SimpleEvent
+    @SimpleEvent(description = "Event raised when an error occurs")
     public void OnError(String error) {
         EventDispatcher.dispatchEvent(this, "OnError", error);
     }
 
     // Event raised when video is paused
-    @SimpleEvent
+    @SimpleEvent(description = "Event raised when video is paused")
     public void OnPause() {
         EventDispatcher.dispatchEvent(this, "OnPause");
     }
 
     // Event raised when video is played
-    @SimpleEvent
+    @SimpleEvent(description = "Event raised when video is played")
     public void OnPlay() {
         EventDispatcher.dispatchEvent(this, "OnPlay");
     }
 
     // Event raised when player is ready
-    @SimpleEvent
+    @SimpleEvent(description = "Event raised when player is ready")
     public void OnReady() {
         EventDispatcher.dispatchEvent(this, "OnReady");
     }
 
     // Event raised when video is completed
-    @SimpleEvent
+    @SimpleEvent(description = "Event raised when video is completed")
     public void OnComplete() {
         EventDispatcher.dispatchEvent(this, "OnComplete");
     }
 
     // Event raised when fullscreen changes
-    @SimpleEvent
+    @SimpleEvent(description = "Event raised when fullscreen changes")
     public void OnFullScreenChanged(boolean isFullscreen) {
         EventDispatcher.dispatchEvent(this, "OnFullScreenChanged", isFullscreen);
     }
 
     // Event raised when video metadata is loaded
-    @SimpleEvent
+    @SimpleEvent(description = "Event raised when video metadata is loaded")
     public void GotMetadata(Object data) {
         EventDispatcher.dispatchEvent(this, "GotMetadata", data);
     }
 
     // Event raised when time changes
-    @SimpleEvent
+    @SimpleEvent(description = "Event raised when time changes")
     public void TimeUpdated(String time) {
         EventDispatcher.dispatchEvent(this, "TimeUpdated", time);
     }
 
     // Event raised when player returns caption text for current time
-    @SimpleEvent
+    @SimpleEvent(description = "Event raised when player returns caption text for current time")
     public void GotText(String text) {
         EventDispatcher.dispatchEvent(this, "GotText", text);
     }
 
     // Event raised when new track is added
-    @SimpleEvent
+    @SimpleEvent(description = "Event raised when new track is added")
     public void TrackAdded(String title, String language) {
         EventDispatcher.dispatchEvent(this, "TrackAdded", title, language);
     }
 
     // Event raised when loading state changes
-    @SimpleEvent
+    @SimpleEvent(description = "Event raised when loading state changes")
     public void LoadingState(boolean isLoading) {
         EventDispatcher.dispatchEvent(this, "LoadingState", isLoading);
     }
 
     // Custom Chrome Client for adding support for fullscreen
-    private class MyChrome extends WebChromeClient {
+    public class MyChrome extends WebChromeClient {
         private View mCustomView;
         private CustomViewCallback mCustomViewCallback;
         private int mOriginalOrientation;
         private int mOriginalSystemUiVisibility;
-        private final DisplayMetrics displayMetrics;
         private final View decorView;
 
-        MyChrome(Context context) {
-            this.displayMetrics = context.getResources().getDisplayMetrics();
+        MyChrome() {
             this.decorView = Plyr.this.activity.getWindow().getDecorView();
         }
 
@@ -451,9 +457,9 @@ public class Plyr extends AndroidNonvisibleComponent {
                 this.mOriginalOrientation = Plyr.this.activity.getRequestedOrientation();
                 this.mCustomViewCallback = callback;
                 ((FrameLayout) this.decorView).addView(this.mCustomView, new android.widget.FrameLayout.LayoutParams(-1, -1));
-
                 this.decorView.setSystemUiVisibility(3846);
                 this.decorView.setFitsSystemWindows(true);
+                this.mCustomView.setFitsSystemWindows(true);
             }
         }
 
@@ -478,12 +484,11 @@ public class Plyr extends AndroidNonvisibleComponent {
                     break;
                 case FULL_SCREEN_DISABLED:
                     Plyr.this.OnFullScreenChanged(false);
+                    break;
             }
-
             if (message.startsWith("error")) {
                 Plyr.this.OnError(consoleMessage.message());
             }
-
             return true;
         }
     }
@@ -493,59 +498,41 @@ public class Plyr extends AndroidNonvisibleComponent {
 
         @JavascriptInterface
         public void gotMeta(final String meta) {
-            Plyr.this.activity.runOnUiThread(new Runnable() {
-                public void run() {
-                    Object data = meta;
-                    try {
-                        data = JsonUtil.getObjectFromJson(meta, true);
-                    } catch (JSONException var3) {
-                        var3.printStackTrace();
-                    }
-
-                    Plyr.this.GotMetadata(data);
+            Plyr.this.activity.runOnUiThread(() -> {
+                Object data = meta;
+                try {
+                    data = JsonUtil.getObjectFromJson(meta, true);
+                } catch (JSONException var3) {
+                    var3.printStackTrace();
                 }
+
+                Plyr.this.GotMetadata(data);
             });
         }
 
         @JavascriptInterface
         public void timeUpdated(final String time) {
-            Plyr.this.activity.runOnUiThread(new Runnable() {
-                public void run() {
-                    Plyr.this.TimeUpdated(time);
-                }
-            });
+            Plyr.this.activity.runOnUiThread(() -> Plyr.this.TimeUpdated(time));
         }
 
         @JavascriptInterface
         public void gotText(final String text) {
-            Plyr.this.activity.runOnUiThread(new Runnable() {
-                public void run() {
-                    Plyr.this.GotText(text);
-                }
-            });
+            Plyr.this.activity.runOnUiThread(() -> Plyr.this.GotText(text));
         }
 
         @JavascriptInterface
         public void trackAdded(final String title, final String lang) {
-            Plyr.this.activity.runOnUiThread(new Runnable() {
-                public void run() {
-                    Plyr.this.TrackAdded(title, lang);
-                }
-            });
+            Plyr.this.activity.runOnUiThread(() -> Plyr.this.TrackAdded(title, lang));
         }
 
         @JavascriptInterface
         public void loadingChanged(final boolean isLoading) {
-            Plyr.this.activity.runOnUiThread(new Runnable() {
-                public void run() {
-                    Plyr.this.LoadingState(isLoading);
-                }
-            });
+            Plyr.this.activity.runOnUiThread(() -> Plyr.this.LoadingState(isLoading));
         }
     }
 
-    // Webview client
-    private class MyClient extends WebViewClient {
+    // Web view client
+    public class MyClient extends WebViewClient {
         private MyClient() {
         }
 
@@ -570,3 +557,4 @@ public class Plyr extends AndroidNonvisibleComponent {
         }
     }
 }
+

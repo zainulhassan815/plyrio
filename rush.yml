@@ -1,31 +1,40 @@
-name: Plyr           # Caution: DO NOT change the name.
-description: Plyr Video Player <br> A simple extension for adding a simple yet powerful video player based on <a href="https://plyr.io" target="_blank">Plyr</a> that supports lots of cool features.
-homepage: https://community.kodular.io/t/free-plyr-video-player-qualities-captions-thumbnail-attaractive-ui-and-much-more/112735
 # For a detailed info on this file and supported fields, check
 # out this link: https://github.com/ShreyashSaitwal/rush-cli/wiki/Metadata-File
 
-version:
-  number: auto        # Auto increments version number when built with '-r' (or '--release') flag.
-  name: 2.0.5
+---
+name: Plyr           # Caution: DO NOT change the name.
+description: Plyr is a simple and straightforward way to implement an awesome video player in your apps without worrying about state management. It has tone of features that make it stand out against other players in the market. You can freely use it in your personal & commercial projects.
 
-assets:
-  icon: icon.png      # Extension icon
-  other:              # Extension asset(s)
-    - index.html
-    - plyr.css
-    - plyr.js
-    - hls.js
-    - plyr.svg
-    - blank.jpg
+version:
+  number: auto        # Auto increments version number when built with '-r' ('--release') flag.
+  name: '2.0.6'
 
 authors:
   - Zain Ul Hassan
 
-# Uncomment the below field if you wish to apply ProGuard while building a release
-# build ('-r') of your extension:
-release:
-  optimize: true
+build:
+  # If enabled, you will be able to use Java 8 language features in your extension.
+  desugar:
+    enable: true
+    desugar_deps: false
 
-#deps:         # Dependencies should be first added to the "deps" folder
-#  - my_awesome_library.jar
+  # Optimizes your extension on every release build.
+  release:
+    optimize: true
 
+assets:
+  # Extension icon
+  icon: icon.png
+
+  # Extension asset(s)
+  other:
+    - blank.jpg
+    - hls.js
+    - index.html
+    - plyr.css
+    - plyr.js
+    - plyr.svg
+
+# Dependencies declared here should be present in the "deps" directory.
+# deps:
+#   - my_awesome_library.jar
